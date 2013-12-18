@@ -220,7 +220,64 @@ public class ForbidCertainImportsCheckTest extends BaseCheckTestSupport
                 expected);
     }
     
-    
+    @Test
+    public void testWithPrivateClass()
+            throws Exception
+    {
+        String importRegexp = ".+\\.example1.*";
+
+        checkConfig.addAttribute("classNameRegexp", ".*5.*");
+        checkConfig.addAttribute("packageNameRegexp", "");
+        checkConfig.addAttribute("forbiddenImportsRegexp", importRegexp);
+        checkConfig.addAttribute("forbiddenImportsExcludesRegexp", "");
+
+        String[] expected = {
+                "4: " + getMessage(importRegexp,
+                        "one.two.three.example1"),
+                "5: " + getMessage(importRegexp,
+                        "one.two.three.example1.four"),
+                "18: " + getMessage(importRegexp,
+                        "one.two.three.example1.four.Smth"),
+        };
+
+        verify(checkConfig, getPath("InputForbidCertainImportsCheck5.java"),
+                expected);
+    }
+
+    /**
+     * Another example: forbid to use all "*.example1.*" packages in ".*ui.*"
+     * package and ".*Dao" classes For doing that, you should to use the
+     * following check parameters: 
+     * 
+     * Package name regexp = ".*ui.*"
+     * Class name regexp = ".*Dao"
+     * Forbidden imports regexp = "*.example1.*"
+     * Forbidden imports excludes regexp = ""
+     * 
+     */
+    @Test
+    public void secondExampleInJavaDoc()
+            throws Exception
+    {
+        String importRegexp = ".+\\.example1.*";
+
+        checkConfig.addAttribute("classNameRegexp", ".*Dao");
+        checkConfig.addAttribute("packageNameRegexp", ".*ui.*");
+        checkConfig.addAttribute("forbiddenImportsRegexp", importRegexp);
+        checkConfig.addAttribute("forbiddenImportsExcludesRegexp", "");
+
+        String[] expected = {
+                "4: " + getMessage(importRegexp,
+                        "one.two.three.example1"),
+                "5: " + getMessage(importRegexp,
+                        "one.two.three.example1.four"),
+                "18: " + getMessage(importRegexp,
+                        "one.two.three.example1.four.Smth"),
+        };
+
+        verify(checkConfig, getPath("InputForbidCertainImportsCheck6Dao.java"),
+                expected);
+    }
 
     private String getMessage(String pattern, String importText)
     {

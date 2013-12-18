@@ -54,7 +54,7 @@ import com.puppycrawl.tools.checkstyle.api.TokenTypes;
  * "class" and semicolons, so, please, do NOT include "package", "class" or
  * "import" words (or semicolons) into config regexps.<br/>
  * <br/>
- * Real-life example of usage: forbid to use all "*.ui.*" packages in "*.dao.*"
+ * Real-life example of usage: forbid to use all "*.dao.*" packages in "*.ui.*"
  * packages, but ignore all Exception imports (such as
  * <b>org.springframework.dao.InvalidDataAccessResourceUsageException</b>). For
  * doing that, you should to use the following check parameters: <br/>
@@ -66,13 +66,14 @@ import com.puppycrawl.tools.checkstyle.api.TokenTypes;
  * <li>Forbidden imports excludes regexp = "^.+Exception$"</li>
  * </dl>
  * <br/>
- * Another example: forbid to use all "*.ui.*" packages in ".*First.*" classes.
+ * Another example:
+ *  forbid to use all "*.example1.*" packages in ".*ui.*" package and ".*Dao" classes
  * For doing that, you should to use the following check parameters: <br/>
  * <br/>
  * <dl>
- * <li>Package name regexp = ""</li>
- * <li>Class name regexp = ".*First.*"</li>
- * <li>Forbidden imports regexp = "*.ui.*"</li>
+ * <li>Package name regexp = ".*ui.*"</li>
+ * <li>Class name regexp = ".*Dao"</li>
+ * <li>Forbidden imports regexp = "*.example1.*"</li>
  * <li>Forbidden imports excludes regexp = ""</li>
  * </dl>
  * <br/>
@@ -92,10 +93,17 @@ public class ForbidCertainImportsCheck extends Check
     protected static final String MSG_KEY = "forbid.certain.imports";
 
     /**
-     * in order to Pattern.compile(matchWithAllStringRegExp).matcher("any string")
-     * always return true
+     * in order to
+     * Pattern.compile(matchWithAllStringRegExp).matcher("any string") always
+     * return true
      */
     private String matchWithAllStringRegExp = ".*";
+    /**
+     * in order to
+     * Pattern.compile(NotMatchWithAnyStringRegExp).matcher("any string") always
+     * return false
+     */
+    private String NotMatchWithAnyStringRegExp = "";
     /**
      * Pattern for matching package fully qualified name (sets the scope of
      * affected packages).
@@ -142,8 +150,7 @@ public class ForbidCertainImportsCheck extends Check
      */
     public void setPackageNameRegexp(String aPackageNameRegexp)
     {
-        if (aPackageNameRegexp != null) {
-            if (aPackageNameRegexp.length() == 0)
+            if (aPackageNameRegexp == null || aPackageNameRegexp.length() == 0)
             {
                 mPackageNamesRegexp = Pattern.compile(matchWithAllStringRegExp);
             }
@@ -151,7 +158,6 @@ public class ForbidCertainImportsCheck extends Check
             {
                 mPackageNamesRegexp = Pattern.compile(aPackageNameRegexp);
             }
-        }
     }
 
     /**
@@ -161,7 +167,7 @@ public class ForbidCertainImportsCheck extends Check
      */
     public void setClassNameRegexp(String aClassNameRegexp)
     {
-        if (aClassNameRegexp.length() == 0)
+        if (aClassNameRegexp == null || aClassNameRegexp.length() == 0)
         {
             mClassNamesRegexp = Pattern.compile(matchWithAllStringRegExp);
         }
@@ -187,9 +193,15 @@ public class ForbidCertainImportsCheck extends Check
      */
     public void setForbiddenImportsRegexp(String aForbiddenImportsRegexp)
     {
-        if (aForbiddenImportsRegexp != null) {
+        if (aForbiddenImportsRegexp == null || aForbiddenImportsRegexp.length() == 0)
+        {
+            mForbiddenImportsRegexp = Pattern.compile(matchWithAllStringRegExp);
+        }
+        else
+        {
             mForbiddenImportsRegexp = Pattern.compile(aForbiddenImportsRegexp);
         }
+        
     }
 
     /**
@@ -209,10 +221,15 @@ public class ForbidCertainImportsCheck extends Check
     public void setForbiddenImportsExcludesRegexp(String
             aForbiddenImportsExcludesRegexp)
     {
-        if (aForbiddenImportsExcludesRegexp != null) {
-            mForbiddenImportsExcludesRegexp = Pattern
-                    .compile(aForbiddenImportsExcludesRegexp);
+        if (aForbiddenImportsExcludesRegexp == null || aForbiddenImportsExcludesRegexp.length() == 0)
+        {
+            mForbiddenImportsExcludesRegexp = Pattern.compile(NotMatchWithAnyStringRegExp);
         }
+        else
+        {
+            mForbiddenImportsExcludesRegexp = Pattern.compile(aForbiddenImportsExcludesRegexp);
+        }
+        
     }
 
     @Override
@@ -244,18 +261,6 @@ public class ForbidCertainImportsCheck extends Check
                         .matches();
             }
             break;
-        case TokenTypes.LITERAL_CLASS:
-            if (mClassNamesRegexp != null) {
-                final String classQualifiedName = getClassIdent(aAst);
-                mClassMatches = mClassNamesRegexp.matcher(classQualifiedName)
-                        .matches();
-                if (mClassMatches && mPackageMatches
-                        && !mForbiddenImports.isEmpty())
-                {
-                    log(mForbiddenImports);
-                }
-            }
-            break;
         case TokenTypes.IMPORT:
             if (mForbiddenImportsRegexp != null
                     && mForbiddenImportsExcludesRegexp != null)
@@ -272,6 +277,18 @@ public class ForbidCertainImportsCheck extends Check
                         mForbiddenImports.put(aAst, importQualifiedText);
                     }
 
+                }
+            }
+            break;
+        case TokenTypes.LITERAL_CLASS:
+            if (mClassNamesRegexp != null) {
+                final String classQualifiedName = getClassIdent(aAst);
+                mClassMatches = mClassNamesRegexp.matcher(classQualifiedName)
+                        .matches();
+                if (mClassMatches && mPackageMatches
+                        && !mForbiddenImports.isEmpty())
+                {
+                    log(mForbiddenImports);
                 }
             }
             break;
